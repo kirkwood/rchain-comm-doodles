@@ -10,8 +10,8 @@ object zmqtestPair {
 
   def send = {
     val s = context.socket(ZMQ.PAIR)
-    val url = "tcp://localhost:10203"
-    s.connect(url)
+    val url = "tcp://*:10203"
+    s.bind(url)
 
     val env = Envelope()
       .withVersion(1)
@@ -32,8 +32,8 @@ object zmqtestPair {
 
   def recv = {
     val s = context.socket(ZMQ.PAIR)
-    val url = "tcp://*:10203"
-    s.bind(url)
+    val url = "tcp://localhost:10203"
+    s.connect(url)
 
     for (i <- 1 to 10) {
 
@@ -50,6 +50,8 @@ object zmqtestPair {
         }
       }
     }
+
+    s close
   }
 }
 
@@ -159,7 +161,7 @@ object zmqtestPubSub {
       // env writeTo buf
       val barray = (buf toByteArray)
       val resp = s send (barray, 0)
-      println ("SENT #" + base + i, barray, (barray size), resp)
+      println ("SENT #" + i, barray, (barray size), resp)
       Thread sleep 1000
       loop
     }
