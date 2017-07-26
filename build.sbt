@@ -11,7 +11,6 @@ PB.targets in Compile := Seq(
 
 // val scalazVersion = "7.2.11"
 
-
 // PB.targets in Compile := Seq(
 //   scalapb.gen() -> (sourceManaged in Compile).value
 // )
@@ -20,8 +19,5 @@ PB.targets in Compile := Seq(
 resolvers += "Sonatype (releases)" at "https://oss.sonatype.org/content/repositories/releases/"
 libraryDependencies += "org.zeromq" %% "zeromq-scala-binding" % "0.0.6"
 // libraryDependencies += "org.zeromq" %% "jeromq" % "0.4.0"
-
-
 // addSbtPlugin("com.thesamet" % "sbt-protoc" % "0.99.8")
 // libraryDependencies += "com.trueaccord.scalapb" %% "compilerplugin" % "0.6.0-pre4"
-

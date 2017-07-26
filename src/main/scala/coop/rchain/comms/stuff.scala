@@ -1,8 +1,9 @@
 import org.zeromq.ZMQ
-import coop.rchain.comms.{Envelope,QuickResponse,Code}
+import coop.rchain.comms.{Code, Envelope, QuickResponse}
 
 object util {
-    def makeBytes (x: String): com.google.protobuf.ByteString = com.google.protobuf.ByteString.copyFromUtf8(x)
+  def makeBytes(x: String): com.google.protobuf.ByteString =
+    com.google.protobuf.ByteString.copyFromUtf8(x)
 }
 
 object zmqtestPair {
@@ -23,10 +24,10 @@ object zmqtestPair {
 
     for (i <- 1 to 10) {
       val buf = new java.io.ByteArrayOutputStream()
-      (env withPayload (util.makeBytes ("#{ZMQ-PROTOBUF TEST " + i + "}"))) writeTo buf
+      (env withPayload util.makeBytes("#{ZMQ-PROTOBUF TEST " + i + "}")) writeTo buf
       val barray = (buf toByteArray)
       val resp = s send (barray, 0)
-      println ("SENT", barray, (barray size), resp)
+      println("SENT", barray, (barray size), resp)
     }
   }
 
@@ -37,16 +38,16 @@ object zmqtestPair {
 
     for (i <- 1 to 10) {
 
-      print ("waiting...")
+      print("waiting...")
 
       val barray = (s recv 0)
 
-      println ("recv", i)
+      println("recv", i)
       barray match {
-        case null => println ("nothing here")
+        case null => println("nothing here")
         case _ => {
           val env = Envelope.parseFrom(barray)
-          println ("RECV", barray, env)
+          println("RECV", barray, env)
         }
       }
     }
@@ -75,16 +76,16 @@ object zmqtestReqRep {
 
     for (i <- 1 to 10) {
       (buf reset)
-      (env withPayload (util.makeBytes ("#{ZMQ-PROTOBUF TEST " + i + "}"))) writeTo buf
+      (env withPayload util.makeBytes("#{ZMQ-PROTOBUF TEST " + i + "}")) writeTo buf
       val barray = (buf toByteArray)
       val resp = s send (barray, 0)
-      println ("Sent request", barray, (barray size), resp)
+      println("Sent request", barray, (barray size), resp)
       val barray_in = (s recv 0)
       barray_in match {
-        case null => println ("No response received")
+        case null => println("No response received")
         case _ => {
           val resp = QuickResponse.parseFrom(barray_in)
-          println ("Received response", barray_in, resp)
+          println("Received response", barray_in, resp)
         }
       }
     }
@@ -102,22 +103,22 @@ object zmqtestReqRep {
 
     @annotation.tailrec
     def serve: Unit = {
-      print ("waiting...")
+      print("waiting...")
 
       val barray_in = (s recv 0)
 
       // println ("recv", i)
 
       barray_in match {
-        case null => println ("nothing here")
+        case null => println("nothing here")
         case _ => {
           val env = Envelope.parseFrom(barray_in)
-          println ("Received request", barray_in, env)
+          println("Received request", barray_in, env)
         }
       }
 
       s send (barray_out, 0)
-      println ("Sent response", barray_out, resp)
+      println("Sent response", barray_out, resp)
 
       serve
     }
@@ -155,13 +156,13 @@ object zmqtestPubSub {
       (env
         .withTransactionNumber(base + i)
         .withPayload(util.makeBytes("#{Message #" + i + "}"))
-        .withTimeSinceEpoch(System.currentTimeMillis/1000)
+        .withTimeSinceEpoch(System.currentTimeMillis / 1000)
         .withTransactionNumber(base + i)) writeTo buf
 
       // env writeTo buf
       val barray = (buf toByteArray)
       val resp = s send (barray, 0)
-      println ("SENT #" + i, barray, (barray size), resp)
+      println("SENT #" + i, barray, (barray size), resp)
       Thread sleep 1000
       loop
     }
@@ -178,11 +179,11 @@ object zmqtestPubSub {
 
       val barray = (s recv 0)
       barray match {
-        case null => println ("Nothing received (?)")
+        case null => println("Nothing received (?)")
         case _ => {
           val env = Envelope.parseFrom(barray)
 
-          println ("Received " + barray + " " + env)
+          println("Received " + barray + " " + env)
 
         }
       }
