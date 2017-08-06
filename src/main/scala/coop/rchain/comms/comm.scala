@@ -27,7 +27,7 @@ case class Error(message: String) extends Result
 
 trait Comm {
   def send(data: Array[Byte]): Result
-  def recv(): Result
+  // def recv(): Result
 }
 
 object ZeromqComm {
