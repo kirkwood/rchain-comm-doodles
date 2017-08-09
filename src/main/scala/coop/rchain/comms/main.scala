@@ -1,6 +1,9 @@
 package coop.rchain.comm
 
 import org.rogach.scallop._
+import coop.rchain.kv._
+
+import java.util.concurrent.{BlockingQueue,LinkedBlockingQueue}
 import java.util.UUID
 
 object Defaults {
@@ -44,7 +47,58 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
     short = 'H',
     descr = "Port on which HTTP server should listen.")
 
-  verify()
+  verify
+}
+
+class Receiver(comm: Comm, commands: BlockingQueue[KeyValueCommand]) extends Thread {
+  override def run(): Unit = {
+    while (true) {
+      val stuff = comm.recv()
+      stuff match {
+        case Response(d) => {
+          println(s"Received: " + new String(d))
+          commands add (KeyValueCommand parseFrom d)
+        }
+        case Error(e) => println(s"Error: $e")
+      }
+    }
+  }
+}
+
+class Mutator(me: UUID, comm: Comm, store: KeyValueStore, commands: BlockingQueue[KeyValueCommand]) extends Thread {
+  val buf = new java.io.ByteArrayOutputStream
+  val uuid_str = me toString
+
+  override def run(): Unit = {
+    val setCmd = com.google.protobuf.ByteString.copyFromUtf8("set")
+
+    while (true) {
+      val cmd = (commands take)
+
+      println(s"COMMAND: $cmd")
+
+      if (cmd.command == setCmd) {
+        store.add(new Key(cmd.key toStringUtf8), (cmd.value toStringUtf8))
+        cmd.header match {
+          case Some(h) => {
+            if ((h.nodeId toStringUtf8) == uuid_str) {
+              (buf reset)
+              (cmd writeTo buf)
+              (comm send (buf toByteArray)) foreach { r =>
+                println(
+                  r match {
+                    case Response(d) => s"data: $d: ‘" + new String(d) + "’"
+                    case Error(msg) => s"error: $msg"
+                  }
+                )
+              }
+            }
+          }
+          case None => ()
+        }
+      }
+    }
+  }
 }
 
 object CommTest {
@@ -63,21 +117,43 @@ object CommTest {
 
     peers foreach { x => println("peer: " + x) }
 
+    val db = new KeyValueStore
+
     println(conf.summary)
 
     val me = UUID.randomUUID
     println(s"I am $me")
 
-    val zmq = new ZeromqComm(listen)
 
-    for (i <- 1 to 10) {
-      Thread.sleep(1000)
-      println(
-        (zmq send (s"ME: $me ($i)" getBytes)) match {
-          case Response(d) => s"data: $d: ‘" + new String(d) + "’"
-          case Error(msg) => s"error: $msg"
-        }
-      )
-    }
+    val cmdQueue = new java.util.concurrent.LinkedBlockingQueue[KeyValueCommand]
+
+    val comm = 
+      conf.transport() match {
+        case "zeromq" =>
+          new ZeromqComm(listen, peers)
+        case "netty" =>
+          new NettyComm(listen, peers)
+      }
+
+    val mutator = new Mutator(me, comm, db, cmdQueue)
+    mutator start
+
+    val http = new HttpServer(conf.httpPort(), db, me, cmdQueue)
+    http start
+
+    val receiver = new Receiver(comm, cmdQueue)
+    receiver.start
+
+    // for (i <- 1 to 10) {
+    //   Thread.sleep(1000)
+    //   (comm send (s"ME: $me ($i)" getBytes)) foreach { r =>
+    //     println(
+    //       r match {
+    //         case Response(d) => s"data: $d: ‘" + new String(d) + "’"
+    //         case Error(msg) => s"error: $msg"
+    //       }
+    //     )
+    //   }
+    // }
   }
 }
