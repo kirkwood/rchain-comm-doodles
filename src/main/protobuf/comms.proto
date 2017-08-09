@@ -19,7 +19,3 @@ message QuickResponse {
     Code code                 = 1;
 }
 
-message Event {
-    Envelope envelope         = 1;
-    bytes    detail           = 2;
-}

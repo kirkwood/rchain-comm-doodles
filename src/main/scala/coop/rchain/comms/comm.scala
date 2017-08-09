@@ -1,7 +1,5 @@
 package coop.rchain.comm
 
-import org.zeromq.ZMQ
-
 class Endpoint(host: String, port: Int) {
   override def toString = s"#{Endpoint $host:$port}"
   def format = s"$host:$port"
@@ -26,30 +24,7 @@ case class Response(data: Array[Byte]) extends Result
 case class Error(message: String) extends Result
 
 trait Comm {
-  def send(data: Array[Byte]): Result
-  // def recv(): Result
+  def send(data: Array[Byte]): Array[Result]
+  def recv(): Result
 }
 
-object ZeromqComm {
-  lazy val context = {
-    ZMQ.context(1)
-  }
-}
-
-class ZeromqComm(endpoint: Endpoint) extends Comm {
-
-  lazy val sock = {
-    val uri = s"tcp://${endpoint format}"
-    val s = ZeromqComm.context.socket(ZMQ.PUSH)
-    s.bind(uri)
-    println(s"Bound sock $uri.")
-    s
-  }
-
-  override def send(data: Array[Byte]): Result = {
-    sock.send(data, ZMQ.DONTWAIT) match {
-      case false => Error("Couldn't send")
-      case _ => Response((s"Sent $data: " getBytes) ++ data)
-    }
-  }
-}
